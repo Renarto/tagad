@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Fake News Detector",
+  "version": "1.0",
+  "description": "Analyzes articles for accuracy, credibility, and trustworthiness",
+
+  // Permissions needed by the extension:
+  // - activeTab: lets us interact with the currently focused tab
+  // - scripting: lets us inject content scripts programmatically if needed
+  // - tabs: lets popup.js query and message the active tab
+  // - storage: lets us save user-approved domains persistently across sessions
+  "permissions": ["activeTab", "scripting", "tabs", "storage"],
+
+  // host_permissions: grants access to run content scripts on ALL websites
+  // This is required for the content script to analyze any page the user visits
+  "host_permissions": ["<all_urls>"],
+
+  // action: defines the popup that appears when the extension icon is clicked
+  "action": {
+    "default_popup": "popup.html",         // The HTML file rendered in the popup window
+    "default_title": "Analyze this article" // Tooltip shown on hover over the extension icon
+  },
+
+  // service_worker: the background script (MV3 equivalent of background script in MV2)
+  // Handles storage operations and message passing between popup and content scripts
+  "background": {
+    "service_worker": "background.js",    // Service worker for handling messages and storage
+    "type": "module"                       // Use ES6 modules (optional)
+  },
+
+  // content_scripts: these JS files are automatically injected into every web page
+  // They run in the context of the page (can access the DOM) but not the extension popup
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],  // Run on every URL (all websites)
+      "js": [
+        "storage-manager.js",     // Must load FIRST — initializes chrome.storage and provides data access
+        "helpers.js",             // Must load second — provides shared utilities used by all other scripts
+        "author-detector.js",     // Author detection logic (depends on helpers.js)
+        "text-checker.js",        // Text analysis: clickbait, caps, punctuation (depends on helpers.js)
+        "source-checker.js",      // Source quality checks: links, attribution (depends on helpers.js)
+        "domain-checker.js",      // Domain reputation checker (depends on helpers.js)
+        "translation.js",         // isEnglish() function for language detection
+        "clickbait-words.js",     // CLICKBAIT_WORDS list and getClickbaitRegex()
+        "misleading-content.js",  // Headline-vs-body similarity check
+        "trusted-domains.js",     // List of known trusted news domains
+        "content.js"              // Must load LAST — orchestrates all above modules and handles messages
+      ]
+    }
+  ]
+}
